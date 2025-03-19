@@ -5,19 +5,20 @@ import axios from 'axios';
 const App = () => {
   const [appId, setAppId] = useState('');
   const [apiKey, setApiKey] = useState('');
-  const [deviceId, setDeviceId] = useState(''); // ID do dispositivo
+  const [deviceId, setDeviceId] = useState('');  // ID do dispositivo
   const [mqttStatus, setMqttStatus] = useState('');
   const [sensorData, setSensorData] = useState(null);
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false); // Novo estado para controle de loading
 
-  const serverUrl = 'https://sensor-ally-server.onrender.com'; // Substitua pela URL real do seu servidor
+  const serverUrl = 'https://sensor-ally-server.onrender.com'; // URL do servidor
 
   // Função para conectar ao servidor MQTT
   const handleMqttSubmit = async () => {
     try {
       const response = await axios.post(`${serverUrl}/connect`, {
         appId,
-        apiKey,
+        apiKey
       });
 
       setMqttStatus(response.data.status);
@@ -28,21 +29,26 @@ const App = () => {
 
   // Função para buscar dados de um dispositivo específico
   const handleFetchData = async () => {
+    setLoading(true); // Ativa o estado de loading antes de buscar os dados
     try {
       const response = await axios.get(`${serverUrl}/sensor-data/${deviceId}`);
+      console.log('Resposta recebida:', response); // Log de resposta do servidor
 
-      if (response.status === 200) {
+      if (response.status === 200 && response.data) {
         setSensorData(response.data);
       } else {
         setSensorData(null);
       }
     } catch (error) {
       setError('Erro ao buscar dados do sensor');
+      console.error('Erro na requisição:', error);
+    } finally {
+      setLoading(false); // Desativa o estado de loading após a requisição
     }
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Configuração do Sensor MQTT</Text>
       <TextInput
         style={styles.input}
@@ -71,12 +77,11 @@ const App = () => {
 
       {error && <Text style={styles.error}>{error}</Text>}
 
-      <ScrollView 
-        contentContainerStyle={styles.dataContainer} // Corrigido aqui para aplicar o alignItems no contentContainerStyle
-      >
-        {sensorData ? (
+      <View style={styles.dataContainer}>
+        {loading ? (
+          <Text>Aguardando novos dados...</Text>  // Exibe enquanto carrega
+        ) : sensorData ? (
           <View>
-            {/* Exibe os dados de temperatura, umidade, etc. */}
             {Object.keys(sensorData).map((key) => (
               <Text style={styles.sensorDataText} key={key}>
                 {key}: {sensorData[key]}
@@ -84,10 +89,10 @@ const App = () => {
             ))}
           </View>
         ) : (
-          <Text>Aguardando novos dados... {deviceId}</Text>
+          <Text>Nenhum dado encontrado.</Text>  // Caso não haja dados
         )}
-      </ScrollView>
-    </View>
+      </View>
+    </ScrollView>
   );
 };
 
@@ -116,8 +121,7 @@ const styles = StyleSheet.create({
   },
   dataContainer: {
     marginTop: 20,
-    alignItems: 'center', // Alinhando os itens no ScrollView
-    maxHeight: 400, // Defina um limite para o ScrollView
+    alignItems: 'center',
   },
   sensorDataText: {
     fontSize: 18,
