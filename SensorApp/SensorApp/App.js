@@ -1,51 +1,88 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
 import axios from 'axios';
 
 const App = () => {
+  const [appId, setAppId] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [mqttStatus, setMqttStatus] = useState('');
   const [sensorData, setSensorData] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Função para buscar dados do sensor
-  const fetchSensorData = async () => {
-    try {
-      const response = await axios.get('https://sensor-ally-server.onrender.com/sensor-data');
-      const newData = response.data;
+  const serverUrl = 'https://sensor-ally-server.onrender.com'; // Substitua pela URL real do seu servidor
 
-      // Atualiza os dados apenas se forem diferentes
-      setSensorData((prevData) =>
-        JSON.stringify(prevData) !== JSON.stringify(newData) ? newData : prevData
-      );
-      setLoading(false);
+  // Função para conectar ao servidor MQTT
+  const handleMqttSubmit = async () => {
+    try {
+      const response = await axios.post(`${serverUrl}/connect`, {
+        appId,
+        apiKey
+      });
+
+      setMqttStatus(response.data.status);
     } catch (error) {
-      setError('Erro ao buscar dados do sensor');
-      setLoading(false);
+      setError('Erro ao conectar ao MQTT');
     }
   };
 
-  // Atualiza automaticamente os dados a cada 60 segundos
+  // Função para buscar dados do sensor continuamente
   useEffect(() => {
-    fetchSensorData(); // Busca ao iniciar o app
+    if (mqttStatus === 'Conectado ao broker MQTT') {
+      const interval = setInterval(async () => {
+        try {
+          const response = await axios.get(`${serverUrl}/sensor-data`);
 
-    const interval = setInterval(fetchSensorData, 60000); // Atualiza a cada 60s
+          if (response.status === 200) {
+            const newData = response.data;
 
-    return () => clearInterval(interval); // Limpa o intervalo ao desmontar
-  }, []);
+            // Atualiza os dados APENAS se forem diferentes
+            setSensorData((prevData) => {
+              return JSON.stringify(prevData) !== JSON.stringify(newData) ? newData : prevData;
+            });
+          }
+        } catch (error) {
+          setError('Erro ao buscar dados do sensor');
+        }
+      }, 60000); // Busca novos dados a cada 1 minuto (60000 ms)
+
+      return () => clearInterval(interval); // Limpa o intervalo quando o componente é desmontado
+    }
+  }, [mqttStatus]);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Dados do Sensor</Text>
-      {loading ? (
-        <Text>Carregando...</Text>
-      ) : error ? (
-        <Text style={styles.error}>{error}</Text>
-      ) : (
-        <View>
-          <Text>🌡️ Temperatura: {sensorData?.ambient_temperature ?? 'N/A'} °C</Text>
-          <Text>💧 Humidade: {sensorData?.relative_humidity ?? 'N/A'} %</Text>
-        </View>
-      )}
+      <Text style={styles.title}>Configuração do Sensor MQTT</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="App ID"
+        value={appId}
+        onChangeText={setAppId}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="API Key"
+        value={apiKey}
+        onChangeText={setApiKey}
+      />
+      <Button title="Conectar ao MQTT" onPress={handleMqttSubmit} />
+
+      {mqttStatus && <Text>Status da Conexão: {mqttStatus}</Text>}
+
+      {error && <Text style={styles.error}>{error}</Text>}
+
+      <View style={styles.dataContainer}>
+        {sensorData ? (
+          <View>
+            {Object.keys(sensorData).map((key) => (
+              <Text style={styles.sensorDataText} key={key}>
+                {key}: {sensorData[key]}
+              </Text>
+            ))}
+          </View>
+        ) : (
+          <Text>Aguardando novos dados...</Text>
+        )}
+      </View>
     </View>
   );
 };
@@ -62,8 +99,24 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 20,
   },
+  input: {
+    height: 40,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    marginBottom: 10,
+    paddingLeft: 10,
+    width: '80%',
+  },
   error: {
     color: 'red',
+  },
+  dataContainer: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  sensorDataText: {
+    fontSize: 18,
+    marginVertical: 5,
   },
 });
 

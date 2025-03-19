@@ -10,7 +10,7 @@ app.use(express.json());
 
 // Variáveis globais para conexão MQTT e armazenamento de dados
 let client;
-let sensorData = null; // Mantém os últimos valores válidos
+let sensorData = {}; // Agora é um objeto para armazenar qualquer dado do sensor
 
 // Conectar ao broker MQTT
 app.post('/connect', (req, res) => {
@@ -51,13 +51,9 @@ app.post('/connect', (req, res) => {
             if (receivedData.uplink_message && receivedData.uplink_message.decoded_payload) {
                 const decodedPayload = receivedData.uplink_message.decoded_payload;
 
-                // Garante que os dados são válidos antes de atualizar
-                if (decodedPayload[""]) {
-                    sensorData = decodedPayload[""];
-                    console.log('✅ Dados atualizados:', sensorData);
-                } else {
-                    console.log('⚠️ Dados inválidos recebidos, mantendo os valores anteriores.');
-                }
+                // Atualiza os dados com qualquer informação recebida
+                sensorData = decodedPayload; 
+                console.log('✅ Dados atualizados:', sensorData);
             } else {
                 console.log('⚠️ Mensagem não reconhecida, ignorando.');
             }
@@ -73,7 +69,7 @@ app.post('/connect', (req, res) => {
 
 // Rota para buscar os dados do sensor
 app.get('/sensor-data', (req, res) => {
-    if (!sensorData) {
+    if (Object.keys(sensorData).length === 0) {
         return res.status(204).send({ message: 'Sem novos dados ainda' });
     }
     res.json(sensorData);
