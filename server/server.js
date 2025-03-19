@@ -26,7 +26,7 @@ app.post('/connect', (req, res) => {
     client.on('connect', () => {
         console.log('✅ Conectado ao MQTT');
 
-        const topic = 'sensor/+/data'; // Escuta todos os dispositivos no padrão MQTT
+        const topic = `v3/${appId}@ttn/devices/+/up`; // Inscreve-se corretamente nos tópicos TTN
         client.subscribe(topic, (err) => {
             if (err) {
                 console.error('Erro ao inscrever-se no tópico:', err);
@@ -50,7 +50,10 @@ app.post('/connect', (req, res) => {
 
             if (receivedData.uplink_message && receivedData.uplink_message.decoded_payload) {
                 const decodedPayload = receivedData.uplink_message.decoded_payload;
-                const deviceId = topic.split('/')[1];
+
+                // Extrai o deviceId corretamente do tópico
+                const topicParts = topic.split('/');
+                const deviceId = topicParts[3]; // Obtém o ID do dispositivo corretamente
 
                 sensorsData[deviceId] = decodedPayload;
 
@@ -66,7 +69,7 @@ app.post('/connect', (req, res) => {
     });
 });
 
-// Rota para enviar os dados dos sensores
+// Rota para obter os dados dos sensores
 app.get('/sensor-data', (req, res) => {
     res.json(sensorsData);
 });
