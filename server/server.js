@@ -26,7 +26,7 @@ app.post('/connect', (req, res) => {
     client.on('connect', () => {
         console.log('✅ Conectado ao MQTT');
 
-        const topic = `v3/${appId}@ttn/devices/+/up`; // Inscreve-se corretamente nos tópicos TTN
+        const topic = `#`; // Inscreve-se corretamente nos tópicos TTN
         client.subscribe(topic, (err) => {
             if (err) {
                 console.error('Erro ao inscrever-se no tópico:', err);
