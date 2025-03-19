@@ -8,16 +8,14 @@ const port = 5000;
 app.use(cors());
 app.use(express.json());
 
-// Variáveis globais para conexão MQTT e armazenamento de dados
 let client;
-let sensorsData = {}; // Armazenar dados dos dispositivos
+let sensorsData = {}; // Armazena dados dos sensores
 
-// Conectar ao broker MQTT
 app.post('/connect', (req, res) => {
-    const { appId, apiKey, deviceId } = req.body;
+    const { appId, apiKey } = req.body;
 
     if (client) {
-        client.end(); // Fecha conexão anterior antes de iniciar uma nova
+        client.end();
     }
 
     client = mqtt.connect('mqtt://eu1.cloud.thethings.network', {
@@ -26,19 +24,18 @@ app.post('/connect', (req, res) => {
     });
 
     client.on('connect', () => {
-        console.log('✅ Conectado ao broker MQTT');
+        console.log('✅ Conectado ao MQTT');
 
-        // Inscreve-se no tópico do dispositivo específico
-        const topic = `sensor/${deviceId}/data`; // Inscrição no tópico do dispositivo
+        const topic = 'sensor/+/data'; // Escuta todos os dispositivos no padrão MQTT
         client.subscribe(topic, (err) => {
             if (err) {
                 console.error('Erro ao inscrever-se no tópico:', err);
-                res.status(500).send({ status: 'Erro ao se inscrever no tópico', error: err.message });
             } else {
                 console.log(`📡 Inscrito no tópico ${topic}`);
-                res.send({ status: `Conectado e inscrito no tópico ${topic}` });
             }
         });
+
+        res.send({ status: 'Conectado ao MQTT' });
     });
 
     client.on('error', (err) => {
@@ -47,23 +44,17 @@ app.post('/connect', (req, res) => {
     });
 
     client.on('message', (topic, message) => {
-        console.log('📩 Mensagem recebida no tópico:', topic);
+        console.log('📩 Mensagem recebida:', topic);
         try {
             const receivedData = JSON.parse(message.toString());
 
-            // Verifica se a mensagem contém os dados esperados
             if (receivedData.uplink_message && receivedData.uplink_message.decoded_payload) {
                 const decodedPayload = receivedData.uplink_message.decoded_payload;
+                const deviceId = topic.split('/')[1];
 
-                // Extrai o ID do dispositivo do tópico
-                const deviceId = topic.split('/')[1]; // ID do dispositivo está na segunda parte do tópico
-
-                // Armazena os dados no objeto de sensores
                 sensorsData[deviceId] = decodedPayload;
 
-                console.log(`✅ Dados atualizados para o dispositivo ${deviceId}:`, sensorsData[deviceId]);
-            } else {
-                console.log('⚠️ Mensagem não reconhecida, ignorando.');
+                console.log(`✅ Dados atualizados (${deviceId}):`, sensorsData[deviceId]);
             }
         } catch (error) {
             console.error('❌ Erro ao processar a mensagem:', error);
@@ -75,17 +66,9 @@ app.post('/connect', (req, res) => {
     });
 });
 
-// Rota para buscar os dados de um sensor específico
-app.get('/sensor-data/:deviceId', (req, res) => {
-    const { deviceId } = req.params;
-    
-    if (!sensorsData[deviceId]) {
-        return res.status(204).send({ message: `Sem dados para o dispositivo ${deviceId}` });
-    }
-
-    const deviceData = sensorsData[deviceId];
-
-    res.json(deviceData); // Retorna todos os dados coletados para o dispositivo
+// Rota para enviar os dados dos sensores
+app.get('/sensor-data', (req, res) => {
+    res.json(sensorsData);
 });
 
 app.listen(port, () => {

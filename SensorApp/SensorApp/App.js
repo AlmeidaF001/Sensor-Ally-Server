@@ -1,74 +1,43 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Button, TextInput, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, ScrollView } from 'react-native';
 import axios from 'axios';
 
 const App = () => {
   const [appId, setAppId] = useState('');
   const [apiKey, setApiKey] = useState('');
-  const [deviceId, setDeviceId] = useState('');
-  const [sensorData, setSensorData] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [mqttStatus, setMqttStatus] = useState('');
+  const [sensorData, setSensorData] = useState({});
+  const [error, setError] = useState(null);
 
-  // Função para conectar ao servidor e se inscrever no tópico do dispositivo
-  const connectToServer = async () => {
-    if (!appId || !apiKey || !deviceId) {
-      setErrorMessage('Por favor, forneça appId, apiKey e deviceId.');
-      return;
-    }
+  const serverUrl = 'https://sensor-ally-server.onrender.com';
 
-    setLoading(true);
-    setErrorMessage('');
-    
+  // Conectar ao servidor MQTT
+  const handleMqttSubmit = async () => {
     try {
-      const response = await axios.post('https://sensor-ally-server.onrender.com/connect', {
-        appId,
-        apiKey,
-        deviceId
-      });
-      
-      console.log(response.data);
-      setLoading(false);
-      setErrorMessage(''); // Limpa qualquer mensagem de erro
+      const response = await axios.post(`${serverUrl}/connect`, { appId, apiKey });
+      setMqttStatus(response.data.status);
     } catch (error) {
-      setLoading(false);
-      setErrorMessage('Erro ao conectar ao servidor.');
-      console.error(error);
+      setError('Erro ao conectar ao MQTT');
     }
   };
 
-  // Função para buscar os dados do sensor
-  const fetchSensorData = async () => {
-    if (!deviceId) {
-      setErrorMessage('Por favor, forneça um deviceId válido.');
-      return;
-    }
-
-    setLoading(true);
-    setErrorMessage('');
-
-    try {
-      const response = await axios.get(`https://sensor-ally-server.onrender.com/sensor-data/${deviceId}`);
-      
-      if (response.status === 204) {
-        setSensorData(null);
-        setErrorMessage('Nenhum dado encontrado.');
-      } else {
-        setSensorData(response.data);
+  // Atualizar dados do sensor automaticamente
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const response = await axios.get(`${serverUrl}/sensor-data`);
+        setSensorData(response.data || {});
+      } catch (error) {
+        console.error('Erro ao buscar dados do sensor:', error);
       }
-      
-      setLoading(false);
-    } catch (error) {
-      setLoading(false);
-      setErrorMessage('Erro ao buscar dados.');
-      console.error(error);
-    }
-  };
+    }, 5000); // Atualiza a cada 5 segundos
+
+    return () => clearInterval(interval);
+  }, []);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Sensor Data</Text>
-      
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.title}>Configuração do Sensor MQTT</Text>
       <TextInput
         style={styles.input}
         placeholder="App ID"
@@ -80,81 +49,89 @@ const App = () => {
         placeholder="API Key"
         value={apiKey}
         onChangeText={setApiKey}
-        secureTextEntry
       />
-      <TextInput
-        style={styles.input}
-        placeholder="Device ID"
-        value={deviceId}
-        onChangeText={setDeviceId}
-      />
-      
-      <Button title="Conectar" onPress={connectToServer} />
-      
-      {loading && <ActivityIndicator size="large" color="#0000ff" />}
-      
-      <Button title="Buscar Dados" onPress={fetchSensorData} disabled={loading || !deviceId} />
+      <Button title="Conectar ao MQTT" onPress={handleMqttSubmit} />
 
-      {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
+      {mqttStatus && <Text style={styles.status}>Status: {mqttStatus}</Text>}
+      {error && <Text style={styles.error}>{error}</Text>}
 
-      {sensorData ? (
-        <ScrollView style={styles.dataContainer}>
-          {Object.entries(sensorData).map(([key, value]) => (
-            <View key={key} style={styles.dataItem}>
-              <Text style={styles.dataKey}>{key}:</Text>
-              <Text style={styles.dataValue}>{value}</Text>
+      <View style={styles.dataContainer}>
+        <Text style={styles.subtitle}>Dados dos Sensores:</Text>
+        {Object.keys(sensorData).length > 0 ? (
+          Object.entries(sensorData).map(([deviceId, data]) => (
+            <View key={deviceId} style={styles.sensorCard}>
+              <Text style={styles.sensorTitle}>Dispositivo: {deviceId}</Text>
+              {Object.entries(data).map(([key, value]) => (
+                <Text key={key} style={styles.sensorData}>
+                  {key}: {value}
+                </Text>
+              ))}
             </View>
-          ))}
-        </ScrollView>
-      ) : (
-        <Text style={styles.noData}>Aguardando dados...</Text>
-      )}
-    </View>
+          ))
+        ) : (
+          <Text style={styles.loading}>Aguardando dados dos sensores...</Text>
+        )}
+      </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
     justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
-  header: {
+  title: {
     fontSize: 24,
-    textAlign: 'center',
+    fontWeight: 'bold',
     marginBottom: 20,
+  },
+  subtitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 20,
   },
   input: {
     height: 40,
-    borderColor: 'gray',
+    borderColor: '#ccc',
     borderWidth: 1,
-    marginBottom: 15,
+    marginBottom: 10,
     paddingLeft: 10,
-    borderRadius: 5,
+    width: '80%',
+  },
+  status: {
+    marginTop: 10,
+    fontSize: 16,
+    color: 'green',
   },
   error: {
     color: 'red',
-    textAlign: 'center',
-    marginTop: 10,
   },
   dataContainer: {
     marginTop: 20,
+    alignItems: 'center',
   },
-  dataItem: {
-    flexDirection: 'row',
-    marginBottom: 10,
+  sensorCard: {
+    padding: 15,
+    margin: 10,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    width: '90%',
   },
-  dataKey: {
-    fontWeight: 'bold',
-    marginRight: 5,
-  },
-  dataValue: {
-    color: 'gray',
-  },
-  noData: {
-    textAlign: 'center',
-    marginTop: 20,
+  sensorTitle: {
     fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  sensorData: {
+    fontSize: 16,
+  },
+  loading: {
+    fontSize: 16,
+    color: 'gray',
   },
 });
 
