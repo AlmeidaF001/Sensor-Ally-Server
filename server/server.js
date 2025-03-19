@@ -82,6 +82,35 @@ app.get('/sensor-data/:deviceId', (req, res) => {
     res.json(sensorsData[deviceId]);
 });
 
+// Nova Rota para buscar dados filtrados por palavra-chave
+app.get('/sensor-data/:deviceId/:keyword', (req, res) => {
+    const { deviceId, keyword } = req.params;
+
+    if (!sensorsData[deviceId]) {
+        return res.status(204).send({ message: `Sem dados para o dispositivo ${deviceId}` });
+    }
+
+    const deviceData = sensorsData[deviceId];
+
+    // Filtra os dados com base na palavra-chave
+    const filteredData = Object.keys(deviceData).filter((key) =>
+        key.toLowerCase().includes(keyword.toLowerCase())
+    );
+
+    // Se não encontrar dados com a palavra-chave
+    if (filteredData.length === 0) {
+        return res.status(204).send({ message: `Nenhum dado encontrado com a palavra-chave '${keyword}'` });
+    }
+
+    // Retorna apenas os dados que possuem a palavra-chave
+    const result = filteredData.reduce((acc, key) => {
+        acc[key] = deviceData[key];
+        return acc;
+    }, {});
+
+    res.json(result);
+});
+
 app.listen(port, () => {
     console.log(`🚀 Servidor rodando na porta ${port}`);
 });

@@ -6,6 +6,7 @@ const App = () => {
   const [appId, setAppId] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [deviceId, setDeviceId] = useState('');  // Novo estado para o ID do dispositivo
+  const [keyword, setKeyword] = useState('');  // Novo estado para a palavra-chave de filtro
   const [mqttStatus, setMqttStatus] = useState('');
   const [sensorData, setSensorData] = useState(null);
   const [error, setError] = useState(null);
@@ -26,10 +27,10 @@ const App = () => {
     }
   };
 
-  // Função para buscar dados de um dispositivo específico
+  // Função para buscar dados de um dispositivo específico e filtrar por palavra-chave
   const handleFetchData = async () => {
     try {
-      const response = await axios.get(`${serverUrl}/sensor-data/${deviceId}`);
+      const response = await axios.get(`${serverUrl}/sensor-data/${deviceId}/${keyword}`);
 
       if (response.status === 200) {
         setSensorData(response.data);
@@ -64,6 +65,14 @@ const App = () => {
         value={deviceId}
         onChangeText={setDeviceId}
       />
+
+      <TextInput
+        style={styles.input}
+        placeholder="Palavra-chave (Ex: temperatura, humidity)"
+        value={keyword}
+        onChangeText={setKeyword}
+      />
+
       <Button title="Buscar Dados do Dispositivo" onPress={handleFetchData} />
 
       {mqttStatus && <Text>Status da Conexão: {mqttStatus}</Text>}
@@ -80,7 +89,7 @@ const App = () => {
             ))}
           </View>
         ) : (
-          <Text>Aguardando novos dados...</Text>
+          <Text>Aguardando novos dados... {sensorData}</Text>
         )}
       </View>
     </View>
