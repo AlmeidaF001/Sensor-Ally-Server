@@ -10,7 +10,7 @@ app.use(express.json());
 
 // Variáveis globais para conexão MQTT e armazenamento de dados
 let client;
-let sensorData = {}; // Agora é um objeto para armazenar qualquer dado do sensor
+let sensorsData = {}; // Agora, armazenamos dados de múltiplos dispositivos
 
 // Conectar ao broker MQTT
 app.post('/connect', (req, res) => {
@@ -27,7 +27,7 @@ app.post('/connect', (req, res) => {
 
     client.on('connect', () => {
         console.log('✅ Conectado ao broker MQTT');
-        client.subscribe('#', (err) => {
+        client.subscribe('#', (err) => { // Assina todos os tópicos
             if (err) {
                 console.error('Erro ao inscrever-se no tópico:', err);
             } else {
@@ -43,7 +43,7 @@ app.post('/connect', (req, res) => {
     });
 
     client.on('message', (topic, message) => {
-        console.log('📩 Mensagem recebida:', topic);
+        console.log('📩 Mensagem recebida no tópico:', topic);
         try {
             const receivedData = JSON.parse(message.toString());
 
@@ -51,9 +51,13 @@ app.post('/connect', (req, res) => {
             if (receivedData.uplink_message && receivedData.uplink_message.decoded_payload) {
                 const decodedPayload = receivedData.uplink_message.decoded_payload;
 
-                // Atualiza os dados com qualquer informação recebida
-                sensorData = decodedPayload; 
-                console.log('✅ Dados atualizados:', sensorData);
+                // Supondo que o tópico tenha o ID do dispositivo (exemplo: "sensor/1234/data")
+                const deviceId = topic.split('/')[1]; // Considerando que o ID está no segundo segmento do tópico
+
+                // Armazena os dados no objeto de sensores
+                sensorsData[deviceId] = decodedPayload;
+
+                console.log(`✅ Dados atualizados para o dispositivo ${deviceId}:`, sensorsData[deviceId]);
             } else {
                 console.log('⚠️ Mensagem não reconhecida, ignorando.');
             }
@@ -67,12 +71,15 @@ app.post('/connect', (req, res) => {
     });
 });
 
-// Rota para buscar os dados do sensor
-app.get('/sensor-data', (req, res) => {
-    if (Object.keys(sensorData).length === 0) {
-        return res.status(204).send({ message: 'Sem novos dados ainda' });
+// Rota para buscar os dados de um sensor específico
+app.get('/sensor-data/:deviceId', (req, res) => {
+    const { deviceId } = req.params;
+    
+    if (!sensorsData[deviceId]) {
+        return res.status(204).send({ message: `Sem dados para o dispositivo ${deviceId}` });
     }
-    res.json(sensorData);
+    
+    res.json(sensorsData[deviceId]);
 });
 
 app.listen(port, () => {

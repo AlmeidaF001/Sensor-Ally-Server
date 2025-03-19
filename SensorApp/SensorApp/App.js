@@ -5,6 +5,7 @@ import axios from 'axios';
 const App = () => {
   const [appId, setAppId] = useState('');
   const [apiKey, setApiKey] = useState('');
+  const [deviceId, setDeviceId] = useState('');  // Novo estado para o ID do dispositivo
   const [mqttStatus, setMqttStatus] = useState('');
   const [sensorData, setSensorData] = useState(null);
   const [error, setError] = useState(null);
@@ -25,29 +26,20 @@ const App = () => {
     }
   };
 
-  // Função para buscar dados do sensor continuamente
-  useEffect(() => {
-    if (mqttStatus === 'Conectado ao broker MQTT') {
-      const interval = setInterval(async () => {
-        try {
-          const response = await axios.get(`${serverUrl}/sensor-data`);
+  // Função para buscar dados de um dispositivo específico
+  const handleFetchData = async () => {
+    try {
+      const response = await axios.get(`${serverUrl}/sensor-data/${deviceId}`);
 
-          if (response.status === 200) {
-            const newData = response.data;
-
-            // Atualiza os dados APENAS se forem diferentes
-            setSensorData((prevData) => {
-              return JSON.stringify(prevData) !== JSON.stringify(newData) ? newData : prevData;
-            });
-          }
-        } catch (error) {
-          setError('Erro ao buscar dados do sensor');
-        }
-      }, 60000); // Busca novos dados a cada 1 minuto (60000 ms)
-
-      return () => clearInterval(interval); // Limpa o intervalo quando o componente é desmontado
+      if (response.status === 200) {
+        setSensorData(response.data);
+      } else {
+        setSensorData(null);
+      }
+    } catch (error) {
+      setError('Erro ao buscar dados do sensor');
     }
-  }, [mqttStatus]);
+  };
 
   return (
     <View style={styles.container}>
@@ -65,6 +57,14 @@ const App = () => {
         onChangeText={setApiKey}
       />
       <Button title="Conectar ao MQTT" onPress={handleMqttSubmit} />
+
+      <TextInput
+        style={styles.input}
+        placeholder="ID do Dispositivo"
+        value={deviceId}
+        onChangeText={setDeviceId}
+      />
+      <Button title="Buscar Dados do Dispositivo" onPress={handleFetchData} />
 
       {mqttStatus && <Text>Status da Conexão: {mqttStatus}</Text>}
 
