@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "SensorApp",
+    "slug": "SensorApp",
+    "version": "1.0.0",
+    "extra": {
+      "eas": {
+        "projectId": "63e2bd78-4097-4848-b344-10e7fad0bc6f"
+      }
+    }
+  }
+}
