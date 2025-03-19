@@ -6,7 +6,6 @@ const App = () => {
   const [appId, setAppId] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [deviceId, setDeviceId] = useState('');  // Novo estado para o ID do dispositivo
-  const [keyword, setKeyword] = useState('');  // Novo estado para a palavra-chave de filtro
   const [mqttStatus, setMqttStatus] = useState('');
   const [sensorData, setSensorData] = useState(null);
   const [error, setError] = useState(null);
@@ -27,10 +26,10 @@ const App = () => {
     }
   };
 
-  // Função para buscar dados de um dispositivo específico e filtrar por palavra-chave
+  // Função para buscar dados de um dispositivo específico
   const handleFetchData = async () => {
     try {
-      const response = await axios.get(`${serverUrl}/sensor-data/${deviceId}/${keyword}`);
+      const response = await axios.get(`${serverUrl}/sensor-data/${deviceId}`);
 
       if (response.status === 200) {
         setSensorData(response.data);
@@ -64,13 +63,6 @@ const App = () => {
         placeholder="ID do Dispositivo"
         value={deviceId}
         onChangeText={setDeviceId}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Palavra-chave (Ex: temperatura, humidity)"
-        value={keyword}
-        onChangeText={setKeyword}
       />
 
       <Button title="Buscar Dados do Dispositivo" onPress={handleFetchData} />

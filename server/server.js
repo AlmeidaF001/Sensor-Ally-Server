@@ -10,7 +10,8 @@ app.use(express.json());
 
 // Variáveis globais para conexão MQTT e armazenamento de dados
 let client;
-let sensorsData = {}; // Agora, armazenamos dados de múltiplos dispositivos
+let sensorsData = {}; // Armazenar dados dos dispositivos
+const keywords = ['temperature', 'humidity', 'pressure', 'light']; // Palavras-chave a serem filtradas
 
 // Conectar ao broker MQTT
 app.post('/connect', (req, res) => {
@@ -71,44 +72,30 @@ app.post('/connect', (req, res) => {
     });
 });
 
-// Rota para buscar os dados de um sensor específico
+// Rota para buscar os dados de um sensor específico, filtrando automaticamente as palavras-chave
 app.get('/sensor-data/:deviceId', (req, res) => {
     const { deviceId } = req.params;
     
     if (!sensorsData[deviceId]) {
         return res.status(204).send({ message: `Sem dados para o dispositivo ${deviceId}` });
     }
-    
-    res.json(sensorsData[deviceId]);
-});
-
-// Nova Rota para buscar dados filtrados por palavra-chave
-app.get('/sensor-data/:deviceId/:keyword', (req, res) => {
-    const { deviceId, keyword } = req.params;
-
-    if (!sensorsData[deviceId]) {
-        return res.status(204).send({ message: `Sem dados para o dispositivo ${deviceId}` });
-    }
 
     const deviceData = sensorsData[deviceId];
 
-    // Filtra os dados com base na palavra-chave
-    const filteredData = Object.keys(deviceData).filter((key) =>
-        key.toLowerCase().includes(keyword.toLowerCase())
-    );
-
-    // Se não encontrar dados com a palavra-chave
-    if (filteredData.length === 0) {
-        return res.status(204).send({ message: `Nenhum dado encontrado com a palavra-chave '${keyword}'` });
-    }
-
-    // Retorna apenas os dados que possuem a palavra-chave
-    const result = filteredData.reduce((acc, key) => {
-        acc[key] = deviceData[key];
+    // Filtra os dados automaticamente com base nas palavras-chave
+    const filteredData = Object.keys(deviceData).reduce((acc, key) => {
+        if (keywords.some((keyword) => key.toLowerCase().includes(keyword))) {
+            acc[key] = deviceData[key];
+        }
         return acc;
     }, {});
 
-    res.json(result);
+    // Se não encontrar dados relevantes
+    if (Object.keys(filteredData).length === 0) {
+        return res.status(204).send({ message: `Nenhum dado relevante encontrado para o dispositivo ${deviceId}` });
+    }
+
+    res.json(filteredData);
 });
 
 app.listen(port, () => {
