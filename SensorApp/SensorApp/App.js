@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TextInput, Button, StyleSheet, ScrollView } from 'react-native';
 import axios from 'axios';
 
 const App = () => {
   const [appId, setAppId] = useState('');
   const [apiKey, setApiKey] = useState('');
-  const [deviceId, setDeviceId] = useState('');  // Novo estado para o ID do dispositivo
+  const [deviceId, setDeviceId] = useState(''); // ID do dispositivo
   const [mqttStatus, setMqttStatus] = useState('');
   const [sensorData, setSensorData] = useState(null);
   const [error, setError] = useState(null);
@@ -17,7 +17,7 @@ const App = () => {
     try {
       const response = await axios.post(`${serverUrl}/connect`, {
         appId,
-        apiKey
+        apiKey,
       });
 
       setMqttStatus(response.data.status);
@@ -71,9 +71,12 @@ const App = () => {
 
       {error && <Text style={styles.error}>{error}</Text>}
 
-      <View style={styles.dataContainer}>
+      <ScrollView 
+        contentContainerStyle={styles.dataContainer} // Corrigido aqui para aplicar o alignItems no contentContainerStyle
+      >
         {sensorData ? (
           <View>
+            {/* Exibe os dados de temperatura, umidade, etc. */}
             {Object.keys(sensorData).map((key) => (
               <Text style={styles.sensorDataText} key={key}>
                 {key}: {sensorData[key]}
@@ -81,9 +84,9 @@ const App = () => {
             ))}
           </View>
         ) : (
-          <Text>Aguardando novos dados... {sensorData}</Text>
+          <Text>Aguardando novos dados... {deviceId}</Text>
         )}
-      </View>
+      </ScrollView>
     </View>
   );
 };
@@ -113,7 +116,8 @@ const styles = StyleSheet.create({
   },
   dataContainer: {
     marginTop: 20,
-    alignItems: 'center',
+    alignItems: 'center', // Alinhando os itens no ScrollView
+    maxHeight: 400, // Defina um limite para o ScrollView
   },
   sensorDataText: {
     fontSize: 18,

@@ -11,7 +11,6 @@ app.use(express.json());
 // Variáveis globais para conexão MQTT e armazenamento de dados
 let client;
 let sensorsData = {}; // Armazenar dados dos dispositivos
-const keywords = ['temperature', 'humidity', 'pressure', 'light']; // Palavras-chave a serem filtradas
 
 // Conectar ao broker MQTT
 app.post('/connect', (req, res) => {
@@ -72,7 +71,7 @@ app.post('/connect', (req, res) => {
     });
 });
 
-// Rota para buscar os dados de um sensor específico, filtrando automaticamente as palavras-chave
+// Rota para buscar os dados de um sensor específico
 app.get('/sensor-data/:deviceId', (req, res) => {
     const { deviceId } = req.params;
     
@@ -82,20 +81,7 @@ app.get('/sensor-data/:deviceId', (req, res) => {
 
     const deviceData = sensorsData[deviceId];
 
-    // Filtra os dados automaticamente com base nas palavras-chave
-    const filteredData = Object.keys(deviceData).reduce((acc, key) => {
-        if (keywords.some((keyword) => key.toLowerCase().includes(keyword))) {
-            acc[key] = deviceData[key];
-        }
-        return acc;
-    }, {});
-
-    // Se não encontrar dados relevantes
-    if (Object.keys(filteredData).length === 0) {
-        return res.status(204).send({ message: `Nenhum dado relevante encontrado para o dispositivo ${deviceId}` });
-    }
-
-    res.json(filteredData);
+    res.json(deviceData); // Retorna todos os dados coletados para o dispositivo
 });
 
 app.listen(port, () => {
