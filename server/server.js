@@ -11,7 +11,6 @@ app.use(express.json());
 // Variáveis globais para conexão MQTT e armazenamento de dados
 let client;
 let sensorsData = {}; // Armazenar dados dos dispositivos
-let currentDeviceId = null; // Variável para armazenar o dispositivo atualmente selecionado
 
 // Conectar ao broker MQTT
 app.post('/connect', (req, res) => {
@@ -28,21 +27,18 @@ app.post('/connect', (req, res) => {
 
     client.on('connect', () => {
         console.log('✅ Conectado ao broker MQTT');
-        
-        if (deviceId) {
-            currentDeviceId = deviceId;
-            const topic = `sensor/${deviceId}/data`; // Inscreve no tópico do dispositivo específico
-            client.subscribe(topic, (err) => {
-                if (err) {
-                    console.error('Erro ao inscrever-se no tópico:', err);
-                } else {
-                    console.log(`📡 Inscrito no tópico do dispositivo ${deviceId}`);
-                }
-            });
-            res.send({ status: `Conectado ao broker MQTT e inscrito no dispositivo ${deviceId}` });
-        } else {
-            res.status(400).send({ status: 'Erro', message: 'deviceId é necessário' });
-        }
+
+        // Inscreve-se no tópico do dispositivo específico
+        const topic = `sensor/${deviceId}/data`; // Inscrição no tópico do dispositivo
+        client.subscribe(topic, (err) => {
+            if (err) {
+                console.error('Erro ao inscrever-se no tópico:', err);
+                res.status(500).send({ status: 'Erro ao se inscrever no tópico', error: err.message });
+            } else {
+                console.log(`📡 Inscrito no tópico ${topic}`);
+                res.send({ status: `Conectado e inscrito no tópico ${topic}` });
+            }
+        });
     });
 
     client.on('error', (err) => {
@@ -59,15 +55,13 @@ app.post('/connect', (req, res) => {
             if (receivedData.uplink_message && receivedData.uplink_message.decoded_payload) {
                 const decodedPayload = receivedData.uplink_message.decoded_payload;
 
-                // Extrai o deviceId do tópico
-                const deviceId = topic.split('/')[1]; // Considerando que o ID está no segundo segmento do tópico
+                // Extrai o ID do dispositivo do tópico
+                const deviceId = topic.split('/')[1]; // ID do dispositivo está na segunda parte do tópico
 
-                if (deviceId === currentDeviceId) {
-                    // Armazena os dados no objeto de sensores
-                    sensorsData[deviceId] = decodedPayload;
+                // Armazena os dados no objeto de sensores
+                sensorsData[deviceId] = decodedPayload;
 
-                    console.log(`✅ Dados atualizados para o dispositivo ${deviceId}:`, sensorsData[deviceId]);
-                }
+                console.log(`✅ Dados atualizados para o dispositivo ${deviceId}:`, sensorsData[deviceId]);
             } else {
                 console.log('⚠️ Mensagem não reconhecida, ignorando.');
             }
@@ -84,12 +78,7 @@ app.post('/connect', (req, res) => {
 // Rota para buscar os dados de um sensor específico
 app.get('/sensor-data/:deviceId', (req, res) => {
     const { deviceId } = req.params;
-
-    // Verifica se o deviceId é o mesmo que o selecionado
-    if (deviceId !== currentDeviceId) {
-        return res.status(400).send({ message: `Dispositivo selecionado não corresponde ao solicitado` });
-    }
-
+    
     if (!sensorsData[deviceId]) {
         return res.status(204).send({ message: `Sem dados para o dispositivo ${deviceId}` });
     }
