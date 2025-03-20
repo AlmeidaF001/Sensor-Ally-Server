@@ -5,7 +5,7 @@ export default function WelcomePage({ navigation }) {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Welcome to Sensor Ally!</Text>
-      <Text style={styles.subtitle}>Home to all your sensors</Text>
+
       <TouchableOpacity
         style={styles.button}
         onPress={() => navigation.navigate("LoginScreen")} // Navega para a tela de login

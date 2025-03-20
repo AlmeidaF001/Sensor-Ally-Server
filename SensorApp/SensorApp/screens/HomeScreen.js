@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { auth } from '../config/FirebaseConfig';
 import { signOut } from 'firebase/auth';
 import axios from 'axios';
+import { Ionicons } from '@expo/vector-icons'; // Para usar o ícone do menu hambúrguer
 
 const HomeScreen = ({ navigation }) => {
   const [appId, setAppId] = useState('');
@@ -46,10 +47,16 @@ const HomeScreen = ({ navigation }) => {
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.container}>
-        <Text style={styles.title}>Configuração do Sensor MQTT</Text>
+        {/* Menu hambúrguer */}
+        <TouchableOpacity onPress={() => navigation.openDrawer()} style={styles.menuButton}>
+          <Ionicons name="menu" size={30} color="white" />
+        </TouchableOpacity>
+        
+        <Text style={styles.title}>Add Sensors via MQTT</Text>
+        
         <TextInput
           style={styles.input}
-          placeholder="App ID"
+          placeholder="Application ID"
           value={appId}
           onChangeText={setAppId}
         />
@@ -59,17 +66,20 @@ const HomeScreen = ({ navigation }) => {
           value={apiKey}
           onChangeText={setApiKey}
         />
-        <Button title="Conectar ao MQTT" onPress={handleMqttSubmit} />
+        
+        <TouchableOpacity style={styles.button} onPress={handleMqttSubmit}>
+          <Text style={styles.buttonText}>Connect to MQTT </Text>
+        </TouchableOpacity>
 
         {mqttStatus && <Text style={styles.status}>Status: {mqttStatus}</Text>}
         {error && <Text style={styles.error}>{error}</Text>}
 
         <View style={styles.dataContainer}>
-          <Text style={styles.subtitle}>Dados dos Sensores:</Text>
+          <Text style={styles.subtitle}>Sensor Data:</Text>
           {Object.keys(sensorData).length > 0 ? (
             Object.entries(sensorData).map(([deviceId, data]) => (
               <View key={deviceId} style={styles.sensorCard}>
-                <Text style={styles.sensorTitle}>Dispositivo: {deviceId}</Text>
+                <Text style={styles.sensorTitle}>Device: {deviceId}</Text>
 
                 <ScrollView style={styles.sensorDataScroll}>
                   {Object.entries(data).map(([key, value]) => (
@@ -81,11 +91,13 @@ const HomeScreen = ({ navigation }) => {
               </View>
             ))
           ) : (
-            <Text style={styles.loading}>Aguardando dados dos sensores...</Text>
+            <Text style={styles.loading}>Waiting for values...</Text>
           )}
         </View>
 
-        <Button title="Logout" onPress={handleLogout} color="red" />
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Text style={styles.logoutButtonText}>Logout</Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );
@@ -94,29 +106,42 @@ const HomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
+    backgroundColor: '#1E293B', // Cor de fundo escura
   },
   container: {
     flex: 1,
     alignItems: 'center',
     padding: 20,
+    paddingTop: 60, // Para dar um espaçamento extra no topo
+  },
+  menuButton: {
+    position: 'absolute',
+    top: 40,
+    right: 20,
+    zIndex: 1, // Para garantir que o botão fique acima dos outros componentes
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
+    color: '#FFF',
     marginBottom: 20,
+    textAlign: 'center',
   },
   subtitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 22,
+    fontWeight: '600',
+    color: '#FFF',
     marginTop: 20,
   },
   input: {
-    height: 40,
+    height: 50,
     borderColor: '#ccc',
     borderWidth: 1,
-    marginBottom: 10,
-    paddingLeft: 10,
-    width: '80%',
+    marginBottom: 15,
+    paddingLeft: 15,
+    width: '85%',
+    borderRadius: 10,
+    backgroundColor: '#FFF',
   },
   status: {
     marginTop: 10,
@@ -125,6 +150,21 @@ const styles = StyleSheet.create({
   },
   error: {
     color: 'red',
+    marginTop: 10,
+  },
+  button: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 15,
+    paddingHorizontal: 40,
+    borderRadius: 8,
+    marginBottom: 20,
+    marginTop: 10,
+  },
+  buttonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
   dataContainer: {
     marginTop: 20,
@@ -132,16 +172,20 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   sensorCard: {
-    padding: 15,
+    padding: 20,
     margin: 10,
     borderWidth: 1,
     borderColor: '#ccc',
-    borderRadius: 8,
+    borderRadius: 12,
     width: '90%',
-    maxHeight: 300, 
+    backgroundColor: '#FFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
   },
   sensorDataScroll: {
-    maxHeight: 180, 
+    maxHeight: 180,
   },
   sensorTitle: {
     fontSize: 18,
@@ -151,10 +195,24 @@ const styles = StyleSheet.create({
   sensorData: {
     fontSize: 16,
     marginBottom: 5,
+    color: '#333',
   },
   loading: {
     fontSize: 16,
     color: 'gray',
+  },
+  logoutButton: {
+    backgroundColor: '#E53935',
+    paddingVertical: 15,
+    paddingHorizontal: 40,
+    borderRadius: 8,
+    marginTop: 30,
+  },
+  logoutButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });
 
