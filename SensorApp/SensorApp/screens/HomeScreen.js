@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { auth } from '../config/FirebaseConfig';
 import { signOut } from 'firebase/auth';
 import axios from 'axios';
-import { Ionicons } from '@expo/vector-icons'; // Para usar o ícone do menu hambúrguer
+import { Ionicons } from '@expo/vector-icons'; 
+import { useNavigation } from '@react-navigation/native';  // Hook correto para navegação
 
-const HomeScreen = ({ navigation }) => {
+const HomeScreen = () => {
   const [appId, setAppId] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [mqttStatus, setMqttStatus] = useState('');
   const [sensorData, setSensorData] = useState({});
   const [error, setError] = useState(null);
 
+  const navigation = useNavigation();  // Hook de navegação para acessar a navegação
   const serverUrl = 'https://sensor-ally-server.onrender.com';
 
   // Conectar ao servidor MQTT
@@ -41,17 +43,19 @@ const HomeScreen = ({ navigation }) => {
   // Logout do usuário
   const handleLogout = async () => {
     await signOut(auth);
-    navigation.replace('Login');
+    navigation.replace('LoginScreen');
   };
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.container}>
-        {/* Menu hambúrguer */}
+        {/* Menu hambúrguer com navegação */}
         <TouchableOpacity onPress={() => navigation.openDrawer()} style={styles.menuButton}>
-          <Ionicons name="menu" size={30} color="white" />
+          <View style={styles.menuButtonBackground}>
+            <Ionicons name="menu" size={32} color="white" />
+          </View>
         </TouchableOpacity>
-        
+
         <Text style={styles.title}>Add Sensors via MQTT</Text>
         
         <TextInput
@@ -110,15 +114,22 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+    top: 20,
     alignItems: 'center',
     padding: 20,
-    paddingTop: 60, // Para dar um espaçamento extra no topo
+    paddingTop: 150, // Para dar um espaçamento extra no topo
   },
+  // Estilo atualizado para o menu hambúrguer
   menuButton: {
     position: 'absolute',
     top: 40,
-    right: 20,
-    zIndex: 1, // Para garantir que o botão fique acima dos outros componentes
+    left: 20, 
+    zIndex: 10, 
+  },
+  menuButtonBackground: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)', // Fundo semi-transparente
+    padding: 12,
+    borderRadius: 50, // Botão circular
   },
   title: {
     fontSize: 28,

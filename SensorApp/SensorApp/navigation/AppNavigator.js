@@ -1,11 +1,16 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import WelcomePage from '../screens/WelcomeScreen'; // A página de boas-vindas
-import LoginScreen from '../screens/LoginScreen'; // A tela de login
-import Register from '../screens/RegisterScreen'; // A tela de cadastro
-import HomeScreen from '../screens/HomeScreen'; // A tela principal após login
+import { createDrawerNavigator } from '@react-navigation/drawer';
+import WelcomePage from '../screens/WelcomeScreen';
+import LoginScreen from '../screens/LoginScreen';
+import Register from '../screens/RegisterScreen';
+import HomeScreen from '../screens/HomeScreen';
+import ProfileScreen from '../screens/ProfileScreen';
+import SensorHistoryScreen from '../screens/SensorHistoryScreen';
+import { Ionicons } from '@expo/vector-icons';
 
 const Stack = createStackNavigator();
+const Drawer = createDrawerNavigator();
 
 const AppNavigator = () => {
   return (
@@ -13,24 +18,65 @@ const AppNavigator = () => {
       <Stack.Screen
         name="WelcomePage"
         component={WelcomePage}
-        options={{ headerShown: false }} // Remove o cabeçalho (título)
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="LoginScreen"
         component={LoginScreen}
-        options={{ headerShown: false }} // Remove o cabeçalho da tela de login
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="RegisterScreen"
         component={Register}
-        options={{ headerShown: false }} // Remove o cabeçalho da tela de registro
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="HomeScreen"
-        component={HomeScreen}
-        options={{ headerShown: false }} // Remove o cabeçalho da tela inicial
+        component={HomeDrawer}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
+  );
+};
+
+const HomeDrawer = () => {
+  return (
+    <Drawer.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Drawer.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{
+          title: 'Home',
+          drawerIcon: ({ color, size }) => (
+            <Ionicons name="home" size={size} color={color} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          title: 'Profile',
+          drawerIcon: ({ color, size }) => (
+            <Ionicons name="person" size={size} color={color} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="Sensor History"
+        component={SensorHistoryScreen}
+        options={{
+          title: 'Sensor History',
+          drawerIcon: ({ color, size }) => (
+            <Ionicons name="time" size={size} color={color} />
+          ),
+        }}
+      />
+    </Drawer.Navigator>
   );
 };
 
