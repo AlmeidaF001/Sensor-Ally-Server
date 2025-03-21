@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { auth } from '../config/FirebaseConfig';
-import { signOut } from 'firebase/auth';
+import { auth } from '../config/FirebaseConfig'; // Certifique-se que FirebaseConfig está correto
+import { signOut } from 'firebase/auth'; // Importar o método de deslogar
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons'; 
 import { useNavigation } from '@react-navigation/native';  // Hook correto para navegação
@@ -14,9 +14,9 @@ const HomeScreen = () => {
   const [error, setError] = useState(null);
 
   const navigation = useNavigation();  // Hook de navegação para acessar a navegação
-  const serverUrl = 'https://sensor-ally-server.onrender.com';
+  const serverUrl = 'https://sensor-ally-server.onrender.com'; // Certifique-se que este URL está correto
 
-  // Conectar ao servidor MQTT
+  // Função para conectar ao servidor MQTT
   const handleMqttSubmit = async () => {
     try {
       const response = await axios.post(`${serverUrl}/connect`, { appId, apiKey });
@@ -26,24 +26,30 @@ const HomeScreen = () => {
     }
   };
 
-  // Atualizar dados do sensor automaticamente
+  // Atualizar os dados do sensor automaticamente a cada 5 segundos
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
-        const response = await axios.get(`${serverUrl}/sensor-data`);
+        const response = await axios.get(`${serverUrl}/sensor-data`, { params: { appId } });
         setSensorData(response.data || {});
       } catch (error) {
         console.error('Erro ao buscar dados do sensor:', error);
+        setError('Erro ao buscar dados do sensor.');
       }
     }, 5000); // Atualiza a cada 5 segundos
 
+    // Limpar o intervalo quando o componente for desmontado
     return () => clearInterval(interval);
-  }, []);
+  }, [appId]); // O array com appId garante que o efeito seja executado quando appId mudar
 
-  // Logout do usuário
+  // Função para deslogar o usuário
   const handleLogout = async () => {
-    await signOut(auth);
-    navigation.replace('LoginScreen');
+    try {
+      await signOut(auth);
+      navigation.replace('LoginScreen'); // Navega para a tela de login
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+    }
   };
 
   return (
@@ -119,7 +125,7 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 150, // Para dar um espaçamento extra no topo
   },
-  // Estilo atualizado para o menu hambúrguer
+  // Estilo atualizado para o hambúrguer
   menuButton: {
     position: 'absolute',
     top: 40,

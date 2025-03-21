@@ -8,6 +8,8 @@ import HomeScreen from '../screens/HomeScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import SensorHistoryScreen from '../screens/SensorHistoryScreen';
 import { Ionicons } from '@expo/vector-icons';
+import { signOut } from 'firebase/auth';
+import { auth } from '../config/FirebaseConfig'; // Certifique-se de que está importando corretamente a configuração do Firebase
 
 const Stack = createStackNavigator();
 const Drawer = createDrawerNavigator();
@@ -37,6 +39,21 @@ const AppNavigator = () => {
       />
     </Stack.Navigator>
   );
+};
+
+const handleLogout = async (navigation) => {
+  try {
+    await signOut(auth);
+    navigation.replace('LoginScreen');
+  } catch (error) {
+    console.error("Erro ao fazer logout", error);
+  }
+};
+
+// Criar um componente separado para o Logout
+const Logout = ({ navigation }) => {
+  handleLogout(navigation);
+  return null; // Não precisamos renderizar nada
 };
 
 const HomeDrawer = () => {
@@ -73,6 +90,17 @@ const HomeDrawer = () => {
           title: 'Sensor History',
           drawerIcon: ({ color, size }) => (
             <Ionicons name="time" size={size} color={color} />
+          ),
+        }}
+      />
+      {/* Aqui criamos um componente de Logout separado */}
+      <Drawer.Screen
+        name="Logout"
+        component={Logout} // Referencia o componente de Logout diretamente
+        options={{
+          title: 'Logout',
+          drawerIcon: ({ color, size }) => (
+            <Ionicons name="log-out" size={size} color={color} />
           ),
         }}
       />

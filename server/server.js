@@ -8,26 +8,26 @@ const port = 5000;
 app.use(cors());
 app.use(express.json());
 
-let client;
-let sensorsData = {}; // Armazena dados dos sensores
+let clients = {}; // Armazena clientes MQTT por usuário
+let sensorsData = {}; // Armazena dados dos sensores por usuário
 
 app.post('/connect', (req, res) => {
     const { appId, apiKey } = req.body;
 
-    if (client) {
-        client.end();
+    if (clients[appId]) {
+        clients[appId].end();
     }
 
-    client = mqtt.connect('mqtt://eu1.cloud.thethings.network', {
+    clients[appId] = mqtt.connect('mqtt://eu1.cloud.thethings.network', {
         username: appId,
         password: apiKey,
     });
 
-    client.on('connect', () => {
-        console.log('✅ Conectado ao MQTT');
+    clients[appId].on('connect', () => {
+        console.log(`✅ Conectado ao MQTT para o usuário ${appId}`);
 
         const topic = `#`; // Inscreve-se corretamente nos tópicos TTN
-        client.subscribe(topic, (err) => {
+        clients[appId].subscribe(topic, (err) => {
             if (err) {
                 console.error('Erro ao inscrever-se no tópico:', err);
             } else {
@@ -38,12 +38,12 @@ app.post('/connect', (req, res) => {
         res.send({ status: 'Conectado ao MQTT' });
     });
 
-    client.on('error', (err) => {
+    clients[appId].on('error', (err) => {
         console.error('❌ Erro de conexão MQTT:', err);
         res.status(500).send({ status: 'Erro ao conectar', error: err.message });
     });
 
-    client.on('message', (topic, message) => {
+    clients[appId].on('message', (topic, message) => {
         console.log('📩 Mensagem recebida:', topic);
         try {
             const receivedData = JSON.parse(message.toString());
@@ -55,23 +55,28 @@ app.post('/connect', (req, res) => {
                 const topicParts = topic.split('/');
                 const deviceId = topicParts[3]; // Obtém o ID do dispositivo corretamente
 
-                sensorsData[deviceId] = decodedPayload;
+                if (!sensorsData[appId]) {
+                    sensorsData[appId] = {};
+                }
 
-                console.log(`✅ Dados atualizados (${deviceId}):`, sensorsData[deviceId]);
+                sensorsData[appId][deviceId] = decodedPayload;
+
+                console.log(`✅ Dados atualizados (${deviceId}) para o usuário ${appId}:`, sensorsData[appId][deviceId]);
             }
         } catch (error) {
             console.error('❌ Erro ao processar a mensagem:', error);
         }
     });
 
-    client.on('close', () => {
-        console.log('⚠️ Conexão MQTT fechada');
+    clients[appId].on('close', () => {
+        console.log(`⚠️ Conexão MQTT fechada para o usuário ${appId}`);
     });
 });
 
 // Rota para obter os dados dos sensores
 app.get('/sensor-data', (req, res) => {
-    res.json(sensorsData);
+    const { appId } = req.query;
+    res.json(sensorsData[appId] || {});
 });
 
 app.listen(port, () => {
